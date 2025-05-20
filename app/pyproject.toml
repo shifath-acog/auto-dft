@@ -1,0 +1,44 @@
+[tool.poetry]
+name = "autodft"
+version = "0.1.0"
+description = ""
+authors = ["Your Name <you@example.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11"
+rdkit = "^2024.3.3"
+ipython = "^8.26.0"
+pandas = "^2.2.2"
+typer = "^0.15.4"
+matplotlib = "^3.9.1"
+numpy = "^2.0.1"
+scipy = "^1.14.0"
+termcolor = "^2.3.0"
+gpu4pyscf-cuda11x = "^1.4.0"
+cutensor-cu11 = "^2.2.0"
+click = "^8.1.8"
+
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+
+[[tool.poetry.source]]
+name = "prod"
+url = "https://pypi.aganitha.ai/"
+priority = "supplemental"
+
+
+[[tool.poetry.source]]
+name = "dev"
+url = "https://dev-pypi.aganitha.ai/"
+priority = "supplemental"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+run_opt = "autodft.app:app"
