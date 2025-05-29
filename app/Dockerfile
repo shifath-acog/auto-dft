@@ -56,4 +56,5 @@ EXPOSE 3000
 # Start the Next.js app
 CMD ["npm", "start"]
 
-#docker run -d --gpus all -v /home/shifath/auto-dft/app/auto-dft-nextjs/uploads:/app/auto-dft-nextjs/uploads -p 3006:3000 --restart always --name auto-dft-nextjs --label description="Next.js app for AutoDFT" auto-dft-app
+#docker run -d --gpus all -v /home/shifath/auto-dft/app/auto-dft-nextjs/uploads:/app/auto-dft-nextjs/uploads -p 3008:3000 --restart always --name next-auto-dft --label description="Next.js app for AutoDFT" next-auto-dft
+

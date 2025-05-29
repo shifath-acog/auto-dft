@@ -25,6 +25,7 @@ export default function Sidebar() {
       if (acceptedFiles.length > 0) {
         setSelectedFile(acceptedFiles[0]);
         setErrors((prev) => ({ ...prev, sdfFile: '' }));
+        toast.success('File uploaded successfully'); // Add success message
       }
     },
   });
@@ -102,7 +103,7 @@ export default function Sidebar() {
             className="border-dashed border-2 border-gray-300 p-3 rounded-md text-center cursor-pointer hover:bg-gray-50 transition"
           >
             <Input {...getInputProps()} id="sdfFile" className="hidden" />
-            <p className="text-gray-600">
+            <p className="text-gray-600 truncate">
               {selectedFile ? selectedFile.name : 'Drag or click to upload (.sdf)'}
             </p>
           </div>
@@ -222,7 +223,6 @@ export default function Sidebar() {
           )}
         </Button>
         {errors.api && <p className="text-red-600 text-sm">{errors.api}</p>}
-       
       </div>
     </Card>
   );
