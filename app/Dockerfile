@@ -41,7 +41,7 @@ RUN pip install --upgrade pip && \
     poetry install --no-interaction --no-ansi && \
     poetry build
 
-# Install and build the Next.js app
+# Install and build the Next.js app with additional dependencies
 WORKDIR /app/auto-dft-nextjs
 RUN npm install && \
     npm run build
@@ -49,6 +49,8 @@ RUN npm install && \
 # Set environment variables
 ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
 ENV UPLOAD_DIR=/app/auto-dft-nextjs/uploads
+ENV DATABASE_PATH=/app/db/jobs.db
+
 
 # Expose port for Next.js
 EXPOSE 3000
@@ -57,4 +59,6 @@ EXPOSE 3000
 CMD ["npm", "start"]
 
 #docker run -d --gpus all -v /home/shifath/auto-dft/app/auto-dft-nextjs/uploads:/app/auto-dft-nextjs/uploads -p 3008:3000 --restart always --name next-auto-dft --label description="Next.js app for AutoDFT" next-auto-dft
+
+
 
