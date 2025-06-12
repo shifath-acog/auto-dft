@@ -2,7 +2,7 @@ FROM ubuntu:22.04
 
 # Install system dependencies for both CLI and Next.js
 RUN apt-get update && \
-    apt-get install -y wget bzip2 ca-certificates curl vim git build-essential cmake && \
+    apt-get install -y wget bzip2 ca-certificates curl vim git build-essential cmake python3 g++ make && \
     # Install Node.js (for Next.js)
     curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
     apt-get install -y nodejs && \
@@ -44,21 +44,22 @@ RUN pip install --upgrade pip && \
 # Install and build the Next.js app with additional dependencies
 WORKDIR /app/auto-dft-nextjs
 RUN npm install && \
+    npm install prisma @prisma/client ldap-authentication jose react-toastify dotenv-cli && \
+    npx prisma generate && \
     npm run build
 
 # Set environment variables
-ENV LD_LIBRARY_PATH=/opt/conda/lib:$LD_LIBRARY_PATH
+ENV LD_LIBRARY_PATH=/opt/conda/lib
 ENV UPLOAD_DIR=/app/auto-dft-nextjs/uploads
 ENV DATABASE_PATH=/app/db/jobs.db
 
+# Create directories for uploads and database
+RUN mkdir -p /app/auto-dft-nextjs/uploads /app/db
 
 # Expose port for Next.js
 EXPOSE 3000
 
-# Start the Next.js app
-CMD ["npm", "start"]
+# Start the Next.js app with Prisma migration
+CMD npx dotenv -e .env.local -- npx prisma migrate deploy && npm start
 
-#docker run -d --gpus all -v /home/shifath/auto-dft/app/auto-dft-nextjs/uploads:/app/auto-dft-nextjs/uploads -p 3008:3000 --restart always --name next-auto-dft --label description="Next.js app for AutoDFT" next-auto-dft
-
-
-
+#docker run -d --gpus all -v /home/shifath/auto-dft/app/auto-dft-nextjs/uploads:/app/auto-dft-nextjs/uploads -v /home/shifath/auto-dft/app/db/jobs.db:/app/db/jobs.db  -p 3008:3000 --restart always --name next-auto-dft --label description="Next.js app for AutoDFT" next-auto-dft

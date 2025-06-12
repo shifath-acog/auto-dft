@@ -1,168 +1,136 @@
-import Database from 'better-sqlite3';
+import { PrismaClient } from '@prisma/client';
 
-// Define interfaces for type safety
-interface CountRow {
-  count: number;
-}
+const prisma = new PrismaClient();
 
-interface RetryCountRow {
-  retry_count: number;
-}
-
-// Initialize SQLite database
-const db = new Database(process.env.DATABASE_PATH || '/app/db/jobs.db', { verbose: console.log });
-
-// Enable foreign key constraints
-db.exec('PRAGMA foreign_keys = ON');
-
-// Create users table
-try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      user_id TEXT PRIMARY KEY,
-      created_at TEXT NOT NULL
-    )
-  `);
-} catch (error) {
-  console.error('Failed to create users table:', error);
-  throw error;
-}
-
-// Create jobs table
-try {
-  db.exec(`
-    CREATE TABLE IF NOT EXISTS jobs (
-      job_id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id TEXT NOT NULL,
-      sdf_file_path TEXT NOT NULL,
-      xyz_file_path TEXT,
-      parameters TEXT NOT NULL,
-      energy REAL,
-      status TEXT NOT NULL,
-      retry_count INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL,
-      completed_at TEXT,
-      FOREIGN KEY (user_id) REFERENCES users(user_id)
-    )
-  `);
-} catch (error) {
-  console.error('Failed to create jobs table:', error);
-  throw error;
-}
-
-// Create index on jobs(status, created_at)
-try {
-  db.exec(`
-    CREATE INDEX IF NOT EXISTS idx_jobs_status_created_at ON jobs(status, created_at)
-  `);
-} catch (error) {
-  console.error('Failed to create index on jobs table:', error);
-  throw error;
-}
-
-export function getDb() {
-  return db;
-}
-
-export function insertUser(userId: string) {
+export async function insertUser(userId: string) {
   try {
-    const stmt = db.prepare('INSERT OR IGNORE INTO users (user_id, created_at) VALUES (?, ?)');
-    stmt.run(userId, new Date().toISOString());
+    await prisma.user.upsert({
+      where: { userId },
+      update: { createdAt: new Date().toISOString() },
+      create: { userId, createdAt: new Date().toISOString() },
+    });
   } catch (error) {
     console.error(`Failed to insert user ${userId}:`, error);
     throw error;
   }
 }
 
-export function insertJob(
+export async function insertJob(
   userId: string,
   sdfFilePath: string,
   parameters: { dielectric: string; functional: string; basis: string; charge: string }
 ) {
   try {
-    const stmt = db.prepare(`
-      INSERT INTO jobs (user_id, sdf_file_path, parameters, status, created_at)
-      VALUES (?, ?, ?, 'pending', ?)
-    `);
-    const info = stmt.run(userId, sdfFilePath, JSON.stringify(parameters), new Date().toISOString());
-    return info.lastInsertRowid as number; // Return job_id
+    const job = await prisma.job.create({
+      data: {
+        userId,
+        sdfFilePath,
+        parameters: JSON.stringify(parameters),
+        status: 'pending',
+        createdAt: new Date().toISOString(),
+      },
+    });
+    return job.jobId;
   } catch (error) {
     console.error(`Failed to insert job for user ${userId}:`, error);
     throw error;
   }
 }
 
-export function getPendingJob() {
+export async function getPendingJob() {
   try {
-    return db.prepare("SELECT * FROM jobs WHERE status='pending' ORDER BY created_at ASC LIMIT 1").get();
+    return await prisma.job.findFirst({
+      where: { status: 'pending' },
+      orderBy: { createdAt: 'asc' },
+    });
   } catch (error) {
     console.error('Failed to get pending job:', error);
     throw error;
   }
 }
 
-export function updateJobStatus(jobId: number, status: string, completedAt?: string) {
+export async function updateJobStatus(jobId: number, status: string, completedAt?: string) {
   try {
-    const stmt = db.prepare('UPDATE jobs SET status=?, completed_at=? WHERE job_id=?');
-    stmt.run(status, completedAt || null, jobId);
+    await prisma.job.update({
+      where: { jobId },
+      data: { status, completedAt },
+    });
   } catch (error) {
     console.error(`Failed to update job status for job ${jobId}:`, error);
     throw error;
   }
 }
 
-export function updateJobResult(jobId: number, xyzFilePath: string, energy: number, completedAt: string) {
+export async function updateJobResult(jobId: number, xyzFilePath: string, energy: number, completedAt: string) {
   try {
-    const stmt = db.prepare('UPDATE jobs SET xyz_file_path=?, energy=?, status=?, completed_at=? WHERE job_id=?');
-    stmt.run(xyzFilePath, energy, 'completed', completedAt, jobId);
+    await prisma.job.update({
+      where: { jobId },
+      data: {
+        xyzFilePath,
+        energy,
+        status: 'completed',
+        completedAt,
+      },
+    });
   } catch (error) {
     console.error(`Failed to update job result for job ${jobId}:`, error);
     throw error;
   }
 }
 
-export function getJobsByUser(userId: string) {
+export async function getJobsByUser(userId: string) {
   try {
-    return db.prepare('SELECT * FROM jobs WHERE user_id=? ORDER BY created_at DESC').all(userId);
+    return await prisma.job.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    });
   } catch (error) {
     console.error(`Failed to get jobs for user ${userId}:`, error);
     throw error;
   }
 }
 
-export function getJobById(jobId: number, userId: string) {
+export async function getJobById(jobId: number, userId: string) {
   try {
-    return db.prepare('SELECT * FROM jobs WHERE job_id=? AND user_id=?').get(jobId, userId);
+    return await prisma.job.findFirst({
+      where: { jobId, userId },
+    });
   } catch (error) {
     console.error(`Failed to get job ${jobId} for user ${userId}:`, error);
     throw error;
   }
 }
 
-export function countPendingJobs(userId: string): number {
+export async function countPendingJobs(userId: string): Promise<number> {
   try {
-    const row = db.prepare("SELECT COUNT(*) as count FROM jobs WHERE user_id=? AND status='pending'").get(userId) as CountRow;
-    return row.count;
+    return await prisma.job.count({
+      where: { userId, status: 'pending' },
+    });
   } catch (error) {
     console.error(`Failed to count pending jobs for user ${userId}:`, error);
     throw error;
   }
 }
 
-export function incrementRetryCount(jobId: number) {
+export async function incrementRetryCount(jobId: number) {
   try {
-    const stmt = db.prepare('UPDATE jobs SET retry_count=retry_count+1 WHERE job_id=?');
-    stmt.run(jobId);
+    await prisma.job.update({
+      where: { jobId },
+      data: { retryCount: { increment: 1 } },
+    });
   } catch (error) {
     console.error(`Failed to increment retry count for job ${jobId}:`, error);
     throw error;
   }
 }
 
-export function getRetryCount(jobId: number): number {
+export async function getRetryCount(jobId: number): Promise<number> {
   try {
-    const row = db.prepare('SELECT retry_count FROM jobs WHERE job_id=?').get(jobId) as RetryCountRow | undefined;
-    return row?.retry_count ?? 0;
+    const job = await prisma.job.findUnique({
+      where: { jobId },
+      select: { retryCount: true },
+    });
+    return job?.retryCount ?? 0;
   } catch (error) {
     console.error(`Failed to get retry count for job ${jobId}:`, error);
     throw error;
