@@ -1,75 +1,66 @@
 'use client';
-import { useState } from 'react';
-import Header from './components/Header';
+import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import FileReaderComponent from './components/FileReaderComponent';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { Download } from "lucide-react";
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+
+interface User {
+  username: string;
+}
 
 export default function Home() {
-  const [files, setFiles] = useState<string[]>([]);
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const handleDownloadXyz = async () => {
-    // Find the XYZ file
-    const xyzFile = files.find(file => file.endsWith('.xyz'));
-    if (!xyzFile) {
-      alert('No XYZ file available to download.');
-      return;
-    }
-
-    try {
-      const encodedPath = encodeURIComponent(xyzFile);
-      const fetchUrl = `/api/files/${encodedPath}`;
-      const response = await fetch(fetchUrl);
-      if (!response.ok) {
-        throw new Error(`Failed to fetch ${fetchUrl}: ${response.status} ${response.statusText}`);
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const response = await fetch('/api/user', {
+          credentials: 'include', // Ensure auth-token cookie is sent
+        });
+        if (!response.ok) {
+          throw new Error('Failed to fetch user data');
+        }
+        const data = await response.json();
+        setUser(data);
+      } catch (error) {
+        console.error('Error fetching user:', error);
+        setUser(null); // Fallback to generic message if user fetch fails
+      } finally {
+        setLoading(false);
       }
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = xyzFile.split('/').pop() || 'molecule.xyz';
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error(`Error downloading file ${xyzFile}:`, error.message);
-      alert(`Failed to download XYZ file: ${error.message}`);
-    }
-  };
+    };
+
+    fetchUser();
+  }, []);
 
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <Header />
-      <div className="flex flex-1 pt-20">
-        {/* Sidebar Container */}
+    <div className="min-h-screen bg-gray-50 flex flex-col pt-16">
+      <div className="flex flex-1">
+        {/* Sidebar */}
         <div className="fixed left-0 top-16 w-[340px]">
           <Sidebar />
         </div>
-        {/* Main Content Container */}
-        <main className="flex-1 ml-[340px] p-6 flex items-center justify-content-center">
-          <div className="max-w-5xl w-full">
-            <div className="bg-white border border-gray-200 rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h1 className="text-2xl font-semibold text-gray-800">
-                  Molecular Visualization
-                </h1>
-                {files.some(file => file.endsWith('.xyz')) && (
-                 
-
-                  <button
-                    onClick={handleDownloadXyz}
-                    className="px-2 py-2 bg-gray-800 text-white rounded-md hover:bg-gray-700 transition shadow-sm flex items-center justify-center"
-                    aria-label="Download"
-                  >
-                    <Download className="w-5 h-5" />
-                  </button>
-                  
-                )}
-              </div>
-              <FileReaderComponent onFilesUpdate={setFiles} />
+        {/* Hero Section */}
+        <main className="flex-1 ml-[340px] p-8 flex items-center justify-center">
+          <div className="max-w-4xl w-full text-center">
+            <h1 className="text-4xl font-bold text-gray-900 mb-3">
+              {loading ? 'Loading...' : user ? `Welcome, ${user.username}` : 'Welcome to Auto-DFT'}
+            </h1>
+            <p className="text-lg text-gray-500 mb-6">
+              Submit an SDF file to run DFT optimization and view results.
+            </p>
+            <div className="flex justify-center gap-4">
+              <Link href="/jobs">
+                <Button
+                  variant="outline"
+                  className="px-6 py-2 border-gray-300 hover:bg-gray-100 transition-all duration-200 text-gray-800"
+                >
+                  View Your Jobs
+                </Button>
+              </Link>
             </div>
           </div>
         </main>

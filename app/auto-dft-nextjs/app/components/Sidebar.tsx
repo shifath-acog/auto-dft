@@ -1,5 +1,6 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useDropzone } from 'react-dropzone';
 
 export default function Sidebar() {
+  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -25,7 +27,7 @@ export default function Sidebar() {
       if (acceptedFiles.length > 0) {
         setSelectedFile(acceptedFiles[0]);
         setErrors((prev) => ({ ...prev, sdfFile: '' }));
-        toast.success('File uploaded successfully'); // Add success message
+        toast.success('File uploaded successfully');
       }
     },
   });
@@ -64,28 +66,21 @@ export default function Sidebar() {
       formData.append('basis', basis);
       formData.append('charge', charge);
 
-      const response = await fetch('/api/run-opt', {
+      const response = await fetch('/api/jobs/submit', {
         method: 'POST',
         body: formData,
       });
       const result = await response.json();
       if (response.ok) {
-        window.dispatchEvent(
-          new CustomEvent('optimize', {
-            detail: result,
-          })
-        );
-        toast.success('Optimization completed successfully');
+        toast.success('Job submitted successfully! Redirecting to job details...');
+        router.push(`/jobs/${result.jobId}`);
       } else {
         toast.error(`${result.error}: ${result.details}`);
-        if (result.stderr) {
-          console.error('CLI stderr:', result.stderr);
-        }
         setErrors({ api: `Failed: ${result.error}` });
       }
     } catch (error: any) {
       toast.error(`Request failed: ${error.message}`);
-      setErrors({ api: 'Failed to run optimization. Please try again.' });
+      setErrors({ api: 'Failed to submit job. Please try again.' });
     } finally {
       setIsSubmitting(false);
     }
@@ -219,7 +214,7 @@ export default function Sidebar() {
               Processing...
             </div>
           ) : (
-            'Optimize'
+            'Submit Job'
           )}
         </Button>
         {errors.api && <p className="text-red-600 text-sm">{errors.api}</p>}

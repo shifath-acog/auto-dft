@@ -21,6 +21,7 @@ export async function insertJob(
   parameters: { dielectric: string; functional: string; basis: string; charge: string }
 ) {
   try {
+    
     const job = await prisma.job.create({
       data: {
         userId,
