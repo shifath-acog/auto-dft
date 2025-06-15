@@ -60,6 +60,7 @@ RUN mkdir -p /app/auto-dft-nextjs/uploads /app/db
 EXPOSE 3000
 
 # Start the Next.js app with Prisma migration
-CMD npx dotenv -e .env.local -- npx prisma migrate deploy && npm start
+
+CMD ["sh", "-c", "npx dotenv -e .env.local -- npx prisma migrate deploy && npm start"]
 
 #docker run -d --gpus all -v /home/shifath/auto-dft/app/auto-dft-nextjs/uploads:/app/auto-dft-nextjs/uploads -v /home/shifath/auto-dft/app/db/jobs.db:/app/db/jobs.db  -p 3008:3000 --restart always --name next-auto-dft --label description="Next.js app for AutoDFT" next-auto-dft

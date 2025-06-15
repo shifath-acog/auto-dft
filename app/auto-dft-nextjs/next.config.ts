@@ -1,8 +1,6 @@
-import type { NextConfig } from "next";
+/** @type {import('next').NextConfig} */
+const nextConfig = {
 
-const nextConfig: NextConfig = {
-  /* config options here */
-  
   eslint: {
     ignoreDuringBuilds: true,
   },
@@ -12,6 +10,11 @@ const nextConfig: NextConfig = {
   images: {
     domains: ['www.aganitha.ai'],
   },
+  experimental: {
+    outputFileTracingIncludes: {
+      '/': ['./app/**/*.{css,js,ts,tsx}', './public/**/*'],
+    },
+  },
 };
 
-export default nextConfig;
+module.exports = nextConfig;
