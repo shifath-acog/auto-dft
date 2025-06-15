@@ -25,7 +25,7 @@ export default function MoleculeViewer({
   const viewerRef = useRef<HTMLDivElement>(null);
   const viewerInstance = useRef<any>(null);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('all');
+  const [activeTab, setActiveTab] = useState('sdf');
 
   // Categorize files
   const sdfFiles = files.filter(file => file.endsWith('.sdf'));
